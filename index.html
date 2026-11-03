@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>VYRO</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="auth.css">
+  <script>
+    window.vyroBanner = function (text) {
+      if (!document.body) return;
+      var el = document.getElementById("vyroBanner");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "vyroBanner";
+        el.setAttribute("style", "position:fixed;top:0;left:0;right:0;z-index:9999;background:#7a1030;color:#fff;padding:12px 14px;font:13px Arial,sans-serif;white-space:pre-wrap;");
+        el.onclick = function () { el.remove(); };
+        document.body.appendChild(el);
+      }
+      el.textContent = "Problem: " + text + "  (tap to close)";
+    };
+    window.addEventListener("error", function (e) {
+      vyroBanner((e.message || "Error") + " (" + String(e.filename || "").split("/").pop() + ":" + e.lineno + ")");
+    });
+    window.addEventListener("unhandledrejection", function (e) {
+      vyroBanner(String((e.reason && e.reason.message) || e.reason));
+    });
+    setTimeout(function () {
+      if (!document.body.classList.contains("booting")) return;
+      document.body.classList.remove("booting");
+      if (typeof createCard !== "function") {
+        vyroBanner("script.js did not load or crashed. Check that every file was uploaded to GitHub.");
+      } else if (!window.vyroBackend) {
+        vyroBanner("backend.js did not start. Check that config.js and backend.js were uploaded.");
+      } else {
+        vyroBanner("VYRO took too long to start. Reload the page.");
+      }
+      if (typeof showPage === "function" && !document.querySelector(".page.active")) showPage("auth");
+    }, 9000);
+  </script>
+</head>
+<body class="booting logged-out">
+
+  <header class="topbar">
+    <h1>VYRO</h1>
+    <button id="settingsBtn" aria-label="Settings">•••</button>
+  </header>
+
+  <main>
+    <!-- LOG IN / SIGN UP -->
+    <section id="auth" class="page active">
+      <h2 id="authTitle">Log in to VYRO</h2>
+      <form id="authForm">
+        <div id="authUsernameWrap" hidden>
+          <label for="authUsername">Username</label>
+          <input id="authUsername" autocomplete="username" placeholder="yourusername" maxlength="24">
+        </div>
+        <label for="authEmail">Email</label>
+        <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <label for="authPassword">Password</label>
+        <input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
+        <div id="authTermsWrap" hidden>
+          <label class="terms">
+            <input type="checkbox" id="authTerms">
+            <span>I'm 13 or older and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms and Privacy</a></span>
+          </label>
+        </div>
+        <button class="primary-btn" id="authSubmit" type="submit">Log in</button>
+        <p class="auth-msg" id="authMsg" role="status"></p>
+        <button class="auth-switch" id="authToggle" type="button">Create an account</button>
+        <button class="auth-switch" id="authForgot" type="button">Forgot password?</button>
+      </form>
+    </section>
+
+    <!-- ENTER THE CODE FROM THE EMAIL -->
+    <section id="verifyCode" class="page">
+      <h2>Enter your code</h2>
+      <form id="codeForm">
+        <label for="codeInput">Code from your email</label>
+        <input id="codeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required>
+        <button class="primary-btn" id="codeSubmit" type="submit">Verify</button>
+        <p class="auth-msg" id="codeMsg" role="status"></p>
+        <button class="auth-switch" id="codeResend" type="button">Resend code</button>
+        <button class="auth-switch" id="codeBack" type="button">Back</button>
+      </form>
+    </section>
+
+    <!-- SET NEW PASSWORD (after the reset code) -->
+    <section id="newPassword" class="page">
+      <h2>Choose a new password</h2>
+      <form id="newPassForm">
+        <label for="newPass">New password</label>
+        <input id="newPass" type="password" autocomplete="new-password" minlength="6" required>
+        <button class="primary-btn" type="submit">Save password</button>
+        <p class="auth-msg" id="newPassMsg" role="status"></p>
+      </form>
+    </section>
+
+    <!-- HOME: FULL-SCREEN VIDEO FEED -->
+    <section id="home" class="page">
+      <div class="feed-tabs">
+        <span class="selected" data-feed="foryou">For You</span>
+        <span data-feed="following">Following</span>
+      </div>
+      <div id="videoFeed" class="video-feed"></div>
+    </section>
+
+    <!-- EXPLORE: PHOTOS, CREATORS, TRENDS AND SOUNDS -->
+    <section id="explore" class="page">
+      <h2>Explore</h2>
+      <input class="search" id="searchInput" placeholder="Search creators">
+
+      <div class="explore-tabs">
+        <button class="selected">All</button>
+        <button>Videos</button>
+        <button>Sounds</button>
+        <button>Trends</button>
+        <button>Creators</button>
+      </div>
+
+      <h3>Creators</h3>
+      <div class="creator-list" id="creatorList"></div>
+
+      <h3>New videos</h3>
+      <div class="photo-grid" id="trendGrid"></div>
+
+    </section>
+
+    <!-- CREATE -->
+    <section id="create" class="page center-page">
+      <h2>Create on VYRO</h2>
+      <input id="captionInput" placeholder="Add a caption (optional)" maxlength="150">
+      <button class="primary-btn" id="uploadBtn">Upload Video</button>
+      <button class="secondary-btn" id="liveBtn">Go Live</button>
+      <input type="file" id="videoInput" accept="video/mp4,video/webm,video/quicktime" hidden>
+    </section>
+
+    <!-- SOCIAL -->
+    <section id="social" class="page">
+      <h2>Social</h2>
+      <div class="social-tabs">
+        <button class="selected">All</button>
+        <button>Followers</button>
+        <button>Likes</button>
+        <button>Comments</button>
+        <button>Reposts</button>
+      </div>
+      <div id="notifications"></div>
+
+      <h3>Messages</h3>
+      <p class="empty-note">Messages are coming soon.</p>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="profile" class="page">
+      <div class="profile-header">
+        <img src="https://i.pravatar.cc/150?img=32" alt="Your profile picture">
+        <h2 id="displayName">VYRO User</h2>
+        <p id="username">@user0</p>
+        <p id="bio">Welcome to my VYRO profile.</p>
+        <button class="secondary-btn" id="editProfileBtn">Edit Profile</button>
+      </div>
+
+      <div class="stats">
+        <div><strong>0</strong><span>Following</span></div>
+        <div><strong>0</strong><span>Followers</span></div>
+        <div><strong>0</strong><span>Likes</span></div>
+      </div>
+
+      <h3>Your Videos</h3>
+      <div class="photo-grid" id="profileGrid"></div>
+    </section>
+
+    <!-- EDIT PROFILE -->
+    <section id="editProfile" class="page">
+      <h2>Edit Profile</h2>
+      <label>Display name</label>
+      <input id="nameInput" placeholder="Your display name">
+      <label>Username</label>
+      <input id="usernameInput" placeholder="yourusername">
+      <label>Bio</label>
+      <textarea id="bioInput" placeholder="Write your bio" maxlength="200"></textarea>
+      <button class="primary-btn" id="saveProfileBtn">Save Changes</button>
+      <button class="secondary-btn" data-page="profile">Cancel</button>
+    </section>
+
+    <!-- OTHER PEOPLE'S PROFILES -->
+    <section id="userProfile" class="page">
+      <div class="profile-header">
+        <img id="upAvatar" alt="">
+        <h2 id="upName"></h2>
+        <p id="upUsername"></p>
+        <p id="upBio"></p>
+        <button class="primary-btn" id="upFollow">Follow</button>
+        <button class="secondary-btn" id="upBlock">Block</button>
+      </div>
+      <div class="stats" id="upStats">
+        <div><strong>0</strong><span>Following</span></div>
+        <div><strong>0</strong><span>Followers</span></div>
+        <div><strong>0</strong><span>Videos</span></div>
+      </div>
+      <h3>Videos</h3>
+      <div class="photo-grid" id="upGrid"></div>
+      <button class="secondary-btn" id="upBack">Back</button>
+    </section>
+
+    <!-- BLOCKED ACCOUNTS -->
+    <section id="blocked" class="page">
+      <h2>Blocked Accounts</h2>
+      <div id="blockedList"></div>
+      <button class="secondary-btn" data-page="settings">Back</button>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="page">
+      <h2>Settings</h2>
+      <button class="setting-row" id="accountBtn">Account</button>
+      <button class="setting-row" id="privacyBtn">Privacy and Terms</button>
+      <button class="setting-row" id="blockedBtn" data-page="blocked">Blocked Accounts</button>
+      <button class="setting-row" id="helpBtn">Help and Support</button>
+      <button class="setting-row" id="logoutBtn">Log Out</button>
+      <button class="setting-row danger" id="deleteAccountBtn">Delete My Account</button>
+      <button class="secondary-btn" data-page="profile">Back</button>
+    </section>
+  </main>
+
+  <!-- BOTTOM NAVIGATION -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="home">
+      <span class="nav-symbol">⌂</span>Home
+    </button>
+    <button class="nav-item" data-page="explore">
+      <span class="nav-symbol">⌕</span>Explore
+    </button>
+    <button class="nav-item create-nav" data-page="create">
+      <span class="nav-symbol">＋</span>Create
+    </button>
+    <button class="nav-item" data-page="social">
+      <span class="nav-symbol">♡</span>Social<span class="badge" id="socialBadge" hidden></span>
+    </button>
+    <button class="nav-item" data-page="profile">
+      <span class="nav-symbol">◯</span>Profile
+    </button>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script src="backend.js"></script>
+</body>
+</html>
